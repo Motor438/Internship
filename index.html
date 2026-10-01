@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Summer 2027 internship tracker for operations, HR and marketing roles.">
+<title>Summer 2027 Internship Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky top nav; Overview = KPI strip + 2-col dashboard grid of chart cards; Roles = filters + table with a slide-in detail drawer; Deadlines = dated timeline */
+:root{
+  --bg:#f3f5f9; --surface:#ffffff; --ink:#151a2b; --muted:#5d6479; --faint:#8a90a3; --line:#dfe2ea; --track:#edf0f6;
+  --accent:#2a49c9; --accent-soft:#e6ebfb;
+  --ok:#1d7a4f; --warn:#9a5b00; --bad:#a6343a;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --p1:#86b6ef; --p2:#5598e7; --p3:#2a78d6; --p4:#1c5cab; --p5:#184f95;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Figtree","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1220; --surface:#171b2c; --ink:#e7e9f2; --muted:#9aa1b8; --faint:#737a92; --line:#2a3048; --track:#222842;
+  --accent:#8ea4ff; --accent-soft:#232c55;
+  --ok:#6fd3a0; --warn:#f0bb63; --bad:#f08a8f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --p1:#184f95; --p2:#1c5cab; --p3:#2a78d6; --p4:#5598e7; --p5:#86b6ef; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1220; --surface:#171b2c; --ink:#e7e9f2; --muted:#9aa1b8; --faint:#737a92; --line:#2a3048; --track:#222842;
+  --accent:#8ea4ff; --accent-soft:#232c55;
+  --ok:#6fd3a0; --warn:#f0bb63; --bad:#f08a8f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --p1:#184f95; --p2:#1c5cab; --p3:#2a78d6; --p4:#5598e7; --p5:#86b6ef; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45}
+a{color:var(--accent)}
+.btn{font:inherit;font-weight:600;border:1px solid var(--accent);background:var(--accent);color:var(--surface);padding:8px 14px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
+.btn:hover{filter:brightness(1.08)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+nav.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.navin{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:10px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:700;font-size:17px;margin-right:auto;white-space:nowrap}
+.brand small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:8px}
+.links{display:flex;gap:4px}
+.links a{color:var(--muted);text-decoration:none;font-weight:600;padding:6px 10px;border-radius:6px}
+.links a:hover{background:var(--track);color:var(--ink)}
+
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:28px 56px;display:flex;flex-direction:column;gap:40px}
+section{display:flex;flex-direction:column;gap:16px}
+.sechead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1,h2{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(26px,4vw,36px)}
+h2{font-size:22px}
+h3{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0;font-weight:600}
+.sub{color:var(--muted);margin:4px 0 0;max-width:68ch}
+.meta{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font-family:var(--display);font-size:30px;line-height:1.1}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi.hot b{color:var(--warn)}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card .hint{font-size:12px;color:var(--faint)}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:grid;grid-template-columns:118px 1fr 30px;align-items:center;gap:10px;background:none;border:0;padding:4px 0;font:inherit;color:inherit;text-align:left;width:100%;border-radius:6px}
+button.bar{cursor:pointer}
+button.bar:hover .fill{filter:brightness(1.1)}
+button.bar[aria-pressed="true"] .lab{font-weight:700;color:var(--accent)}
+.bar .lab{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .trk{height:14px;background:var(--track);border-radius:4px;overflow:hidden}
+.bar .fill{display:block;height:100%;border-radius:0 4px 4px 0;transition:width .4s ease}
+.bar .val{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;text-align:right}
+.stack{display:flex;height:22px;gap:2px;border-radius:4px;overflow:hidden;background:var(--track)}
+.stack div{height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.list{display:flex;flex-direction:column}
+.li{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border:0;border-bottom:1px solid var(--line);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;width:100%}
+.li:last-child{border-bottom:0}
+.li:hover .t{color:var(--accent)}
+.li .d{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.li .t{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li .t small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis}
+
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;background:var(--track);color:var(--ink)}
+.cat-Operations::before,.cat-HR::before,.cat-Marketing::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.cat-Operations::before{background:var(--s1)} .cat-HR::before{background:var(--s2)} .cat-Marketing::before{background:var(--s3)}
+.fit{font-weight:600;font-size:12.5px}
+.fit-Strong{color:var(--ok)} .fit-Good{color:var(--accent)} .fit-Stretch{color:var(--warn)}
+.new{font-family:var(--mono);font-size:10.5px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:0 4px;margin-left:6px;vertical-align:1px}
+
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.group .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-right:2px}
+.chip{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:5px 11px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+input[type=search],select,textarea{font:inherit;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px 10px}
+input[type=search]{min-width:0;flex:1 1 200px}
+.clear{font:inherit;font-size:13px;background:none;border:0;color:var(--accent);cursor:pointer;text-decoration:underline}
+.tablebox{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:880px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;font-weight:600;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+th[aria-sort="ascending"]::after{content:" ↑"} th[aria-sort="descending"]::after{content:" ↓"}
+td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--track)}
+tbody tr:last-child td{border-bottom:0}
+tr.dim td{opacity:.55}
+.co{font-weight:600}
+.role{color:var(--muted);font-size:13px;margin-top:2px}
+.small{font-size:12px;color:var(--muted)}
+.num{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.why{font-size:12.5px;color:var(--muted);margin-top:2px;max-width:32ch}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+.count{font-size:13px;color:var(--muted)}
+
+.tl{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 18px}
+.tlrow{display:grid;grid-template-columns:70px 14px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.tlrow:last-child{border-bottom:0}
+.tlrow .dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent);background:var(--surface)}
+.tlrow.soon .dot{border-color:var(--warn);background:var(--warn)}
+.tlrow.past{opacity:.5}
+.tlrow .when{font-family:var(--mono);font-size:12.5px}
+.tlrow .left{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.tlrow.soon .left{color:var(--warn);font-weight:500}
+.tlrow .li{grid-template-columns:minmax(0,1fr);border:0;padding:0}
+
+.scrim{position:fixed;inset:0;background:rgba(10,12,22,.35);z-index:30}
+aside.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--surface);border-left:1px solid var(--line);z-index:31;overflow-y:auto;padding:calc(20px + env(safe-area-inset-top,0px)) 22px calc(24px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px;box-shadow:-12px 0 32px rgba(10,12,22,.12)}
+.drawer .x{align-self:flex-end;font:inherit;font-size:22px;line-height:1;background:none;border:0;color:var(--muted);cursor:pointer;padding:2px 6px}
+.drawer h2{font-size:20px}
+.dl{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px 12px;margin:0}
+.dl dt{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding-top:2px}
+.dl dd{margin:0}
+.drawer textarea{width:100%;min-height:110px;resize:vertical}
+.drawer label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:6px}
+.callout{background:var(--accent-soft);border-radius:10px;padding:12px 14px;font-size:13.5px}
+
+.tip{position:fixed;z-index:40;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;padding:6px 9px;border-radius:6px;max-width:240px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:50}
+footer{color:var(--muted);font-size:12.5px;max-width:90ch;display:flex;flex-direction:column;gap:6px}
+
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){
+  .links{display:none}
+  .brand small{display:none}
+  table{min-width:0} thead{display:none}
+  tbody tr{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;padding:14px;border-bottom:1px solid var(--line)}
+  td{padding:0;border:0!important} td.c-main,td.c-fit{grid-column:1/-1}
+  .tlrow{grid-template-columns:56px 12px minmax(0,1fr)}
+  .tlrow .left{grid-column:3}
+  .bar{grid-template-columns:96px 1fr 26px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
+
+<nav class="top">
+  <div class="navin">
+    <div class="brand">Summer 2027 Internship Board<small id="navMeta"></small></div>
+    <div class="links"><a href="#overview">Overview</a><a href="#roles">Roles</a><a href="#deadlines">Deadlines</a></div>
+    <button class="btn" id="exportBtn" type="button">Download Excel</button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <section id="overview">
+    <div class="sechead">
+      <div>
+        <h1>Mohammed's internship dashboard</h1>
+        <p class="sub">Full-time Summer 2027 roles in operations, HR and marketing that fit your resume. In-person roles outside DFW all list relocation or housing help. New matches land here every morning.</p>
+      </div>
+      <span class="meta" id="updated"></span>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="grid">
+      <div class="card">
+        <h3>Your application pipeline</h3>
+        <div class="bars" id="pipeline"></div>
+        <div class="hint">Change a role's status and this updates.</div>
+      </div>
+      <div class="card">
+        <h3>Roles by area</h3>
+        <div class="bars" id="byArea"></div>
+        <div class="hint">Click a bar to filter the roles list.</div>
+      </div>
+      <div class="card">
+        <h3>Where you'd work</h3>
+        <div class="bars" id="byMode"></div>
+        <div class="hint">DFW roles are commutable from Arlington. Relocation roles pay for or help with the move.</div>
+      </div>
+      <div class="card">
+        <h3>Resume fit</h3>
+        <div class="stack" id="fitStack" role="img"></div>
+        <div class="legend" id="fitLegend"></div>
+        <div class="bars" id="fitBars"></div>
+      </div>
+      <div class="card">
+        <h3>Closing soonest</h3>
+        <div class="list" id="soonList"></div>
+      </div>
+      <div class="card">
+        <h3>Newest additions</h3>
+        <div class="list" id="newList"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="roles">
+    <div class="sechead"><div><h2>All roles</h2><p class="sub">Click any row for details, your notes, and the apply link.</p></div><span class="count" id="count"></span></div>
+    <div class="filters" aria-label="Filters">
+      <div class="group" id="catGroup"><span class="lbl">Area</span></div>
+      <div class="group" id="modeGroup"><span class="lbl">Setup</span></div>
+      <select id="statusFilter" aria-label="Filter by status"></select>
+      <input type="search" id="q" placeholder="Search company, role, city" aria-label="Search">
+      <button class="clear" id="clearBtn" type="button" hidden>Clear filters</button>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead><tr>
+          <th data-k="company">Company &amp; role</th>
+          <th data-k="category">Area</th>
+          <th data-k="mode">Location</th>
+          <th data-k="pay">Pay</th>
+          <th data-k="deadline">Deadline</th>
+          <th data-k="fit">Resume fit</th>
+          <th data-k="status">My status</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty" id="empty" hidden></div>
+    </div>
+  </section>
+
+  <section id="deadlines">
+    <div class="sechead"><div><h2>Deadlines</h2><p class="sub">Roles with a posted closing date. Everything else is rolling and closes when filled, so apply early.</p></div><span class="count" id="rollingCount"></span></div>
+    <div class="tl" id="timeline"></div>
+  </section>
+
+  <footer>
+    <div>How roles get picked: full-time Summer 2027, open to undergrads graduating December 2027, in operations / supply chain, HR, or marketing. Remote roles, DFW roles, and roles elsewhere only when the posting lists relocation, housing or a moving stipend. Roles with a GPA cutoff above 3.0 or a required engineering, finance or MBA background are left out.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0"><button class="btn" id="backupBtn" type="button" style="background:transparent;color:var(--accent)">Back up progress</button><label class="btn" style="background:transparent;color:var(--accent)">Restore backup<input type="file" id="restoreInput" accept="application/json" hidden></label><span>Your statuses and notes are saved in this browser. Back them up to move to another device.</span></div>
+    <div>Relocation help is usually "for eligible candidates". Confirm the amount with the recruiter.</div>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="Role details"></aside>
+<div class="tip" id="tip" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const STATUSES=["Not applied","Applied","OA / Assessment","Interviewing","Offer","Rejected","Skipped"];
+const PIPE=[["Not applied","--p1"],["Applied","--p2"],["OA / Assessment","--p3"],["Interviewing","--p4"],["Offer","--p5"]];
+const CATS=[["Operations","--s1"],["HR","--s2"],["Marketing","--s3"]];
+const MODES={DFW:"DFW commute",Relocation:"Relocation",Remote:"Remote"};
+const FIT_ORDER={Strong:0,Good:1,Stretch:2};
+let items=[], loaded=false, canWrite=true, openId=null;
+const st={cat:new Set(),mode:new Set(),status:"",q:"",sort:"fit",dir:1};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const statusOf=r=>r.status||"Not applied";
+function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2200)}
+const today=()=>{const d=new Date();d.setHours(12,0,0,0);return d};
+const daysTo=d=>Math.round((new Date(d+"T12:00:00")-today())/864e5);
+const isDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||"");
+const shortDate=d=>new Date(d+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
+const isNew=r=>r.added&&daysTo(r.added)>=-3;
+const plural=(n,w)=>`${n} ${w}${n===1?"":"s"}`;
+
+const tip=$("#tip");
+document.addEventListener("pointermove",e=>{
+  const t=e.target.closest&&e.target.closest("[data-tip]");
+  if(!t||e.pointerType==="touch"){tip.hidden=true;return}
+  tip.textContent=t.dataset.tip;tip.hidden=false;
+  tip.style.left=Math.min(e.clientX+14,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=(e.clientY+16)+"px";
+});
+
+function barRow({label,n,max,color,pressed,key,kind,tipText}){
+  const w=max&&n?Math.max(n/max*100,3):0;
+  const tag=kind?"button":"div";
+  return `<${tag} class="bar" ${kind?`type="button" data-${kind}="${esc(key)}" aria-pressed="${!!pressed}"`:""} data-tip="${esc(tipText)}">
+    <span class="lab">${esc(label)}</span><span class="trk"><span class="fill" style="width:${w}%;background:var(${color})"></span></span><span class="val">${n}</span></${tag}>`;
+}
+
+function renderDashboard(){
+  const total=items.length, by=k=>items.reduce((m,r)=>(m[r[k]]=(m[r[k]]||0)+1,m),{});
+  const sc=items.reduce((m,r)=>(m[statusOf(r)]=(m[statusOf(r)]||0)+1,m),{});
+  const strong=items.filter(r=>r.fit==="Strong").length, good=items.filter(r=>r.fit==="Good").length;
+  const soon=items.filter(r=>isDate(r.deadline)&&daysTo(r.deadline)>=0&&daysTo(r.deadline)<=14&&statusOf(r)==="Not applied").length;
+  const active=(sc["Applied"]||0)+(sc["OA / Assessment"]||0)+(sc["Interviewing"]||0);
+  $("#kpis").innerHTML=[
+    [total,"Roles found"],[strong,"Strong resume fits"],[sc["Not applied"]||0,"Still to apply"],
+    [active,"In progress"],[sc["Offer"]||0,"Offers"],[soon,"Unapplied, closing within 14 days",soon>0],[items.filter(isNew).length,"Added in the last 3 days"]
+  ].map(([n,l,hot])=>`<div class="kpi${hot?" hot":""}"><b>${n}</b><span>${l}</span></div>`).join("");
+
+  const pmax=Math.max(1,...PIPE.map(([s])=>sc[s]||0));
+  $("#pipeline").innerHTML=PIPE.map(([s,c])=>barRow({label:s,n:sc[s]||0,max:pmax,color:c,tipText:`${plural(sc[s]||0,"role")} at "${s}"`})).join("")
+    +`<div class="small">${sc["Rejected"]||0} rejected · ${sc["Skipped"]||0} skipped</div>`;
+
+  const ac=by("category"), amax=Math.max(1,...CATS.map(([c])=>ac[c]||0));
+  $("#byArea").innerHTML=CATS.map(([c,col])=>barRow({label:c,n:ac[c]||0,max:amax,color:col,kind:"cat",key:c,pressed:st.cat.has(c),tipText:`${plural(ac[c]||0,c+" role")} · click to filter`})).join("");
+
+  const mc=by("mode"), mmax=Math.max(1,...Object.keys(MODES).map(m=>mc[m]||0));
+  $("#byMode").innerHTML=Object.entries(MODES).map(([m,l])=>barRow({label:l,n:mc[m]||0,max:mmax,color:"--p3",kind:"mode",key:m,pressed:st.mode.has(m),tipText:`${plural(mc[m]||0,"role")} · click to filter`})).join("");
+
+  const fs=items.filter(r=>r.fit==="Strong"), fc=c=>fs.filter(r=>r.category===c).length;
+  $("#fitStack").innerHTML=CATS.map(([c,col])=>fc(c)?`<div style="flex:${fc(c)};background:var(${col})" data-tip="${plural(fc(c),"strong-fit "+c+" role")}"></div>`:"").join("");
+  $("#fitStack").setAttribute("aria-label",`Strong fits by area: ${CATS.map(([c])=>c+" "+fc(c)).join(", ")}`);
+  $("#fitLegend").innerHTML=`<span style="color:var(--ink);font-weight:600">Strong fits by area</span>`+CATS.map(([c,col])=>`<span><i style="background:var(${col})"></i>${c} ${fc(c)}</span>`).join("");
+  const gmax=Math.max(1,strong,good);
+  $("#fitBars").innerHTML=barRow({label:"Strong fit",n:strong,max:gmax,color:"--p4",tipText:"Duties closely match your Amazon, City of Arlington or SHRM work"})
+    +barRow({label:"Good fit",n:good,max:gmax,color:"--p2",tipText:"You meet the requirements, with less direct overlap"});
+
+  const dated=items.filter(r=>isDate(r.deadline)&&daysTo(r.deadline)>=0).sort((a,b)=>a.deadline<b.deadline?-1:1).slice(0,5);
+  $("#soonList").innerHTML=dated.length?dated.map(r=>`<button class="li" type="button" data-open="${esc(r.id)}"><span class="d">${shortDate(r.deadline)}</span><span class="t">${esc(r.company)}<small>${esc(r.title)}</small></span><span class="small">${daysTo(r.deadline)} days</span></button>`).join("")
+    :`<div class="small">No posted deadlines right now. Most roles are rolling.</div>`;
+  const newest=[...items].sort((a,b)=>(b.added||"").localeCompare(a.added||"")||a.company.localeCompare(b.company)).slice(0,5);
+  $("#newList").innerHTML=newest.length?newest.map(r=>`<button class="li" type="button" data-open="${esc(r.id)}"><span class="d">${r.added?shortDate(r.added):""}</span><span class="t">${esc(r.company)}<small>${esc(r.title)}</small></span><span class="pill cat-${esc(r.category)}">${esc(r.category)}</span></button>`).join("")
+    :`<div class="small">New roles show up here each morning.</div>`;
+
+  const last=items.reduce((m,r)=>r.added>m?r.added:m,"");
+  $("#updated").textContent=last?`Last new role added ${shortDate(last)}`:"";
+  $("#navMeta").textContent=total?plural(total,"role"):"";
+}
+
+function visible(){
+  return items.filter(r=>{
+    if(st.cat.size&&!st.cat.has(r.category))return false;
+    if(st.mode.size&&!st.mode.has(r.mode))return false;
+    const s=statusOf(r);
+    if(st.status==="__active"&&(s==="Skipped"||s==="Rejected"))return false;
+    if(st.status&&st.status!=="__active"&&s!==st.status)return false;
+    if(st.q&&!`${r.company} ${r.title} ${r.location}`.toLowerCase().includes(st.q))return false;
+    return true;
+  }).sort((a,b)=>{
+    let x,y;
+    if(st.sort==="fit"){x=FIT_ORDER[a.fit]??9;y=FIT_ORDER[b.fit]??9}
+    else if(st.sort==="status"){x=STATUSES.indexOf(statusOf(a));y=STATUSES.indexOf(statusOf(b))}
+    else if(st.sort==="deadline"){x=isDate(a.deadline)?a.deadline:"9999";y=isDate(b.deadline)?b.deadline:"9999"}
+    else{x=String(a[st.sort]||"").toLowerCase();y=String(b[st.sort]||"").toLowerCase()}
+    return (x<y?-1:x>y?1:String(a.company).localeCompare(b.company))*st.dir;
+  });
+}
+
+function fmtDeadline(d){
+  if(!isDate(d))return d?esc(d):"Rolling";
+  const n=daysTo(d);
+  if(n<0)return `${shortDate(d)}<div class="small" style="color:var(--bad)">passed</div>`;
+  return `${shortDate(d)}<div class="small"${n<=10?' style="color:var(--warn)"':""}>${plural(n,"day")} left</div>`;
+}
+const statusSelect=(r,id)=>`<select id="${id}" data-id="${esc(r.id)}" aria-label="Status for ${esc(r.company)}" ${canWrite?"":"disabled"}>${STATUSES.map(o=>`<option${o===statusOf(r)?" selected":""}>${o}</option>`).join("")}</select>`;
+
+function renderTable(){
+  document.querySelectorAll("th[data-k]").forEach(th=>th.removeAttribute("aria-sort"));
+  const th=document.querySelector(`th[data-k="${st.sort}"]`); if(th)th.setAttribute("aria-sort",st.dir>0?"ascending":"descending");
+  document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",b.dataset.cat?st.cat.has(b.dataset.cat):st.mode.has(b.dataset.mode)));
+  const rows=visible();
+  $("#rows").innerHTML=rows.map(r=>{const s=statusOf(r);return `<tr class="${s==="Skipped"||s==="Rejected"?"dim":""}" data-open="${esc(r.id)}">
+      <td class="c-main"><div class="co">${esc(r.company)}${isNew(r)?'<span class="new">NEW</span>':""}</div><div class="role">${esc(r.title)}</div></td>
+      <td><span class="pill cat-${esc(r.category)}">${esc(r.category)}</span></td>
+      <td><span class="pill">${esc(MODES[r.mode]||r.mode)}</span><div class="small" style="margin-top:4px">${esc(r.location)}</div></td>
+      <td class="num">${esc(r.pay||"Not listed")}</td>
+      <td class="num">${fmtDeadline(r.deadline)}</td>
+      <td class="c-fit"><span class="fit fit-${esc(r.fit)}">${esc(r.fit)}</span><div class="why">${esc(r.why)}</div></td>
+      <td>${statusSelect(r,"s-"+r.id)}</td></tr>`}).join("");
+  const em=$("#empty");
+  if(!items.length){em.hidden=false;em.textContent=loaded?"No roles yet. New matches are added here each morning.":"Loading roles…"}
+  else if(!rows.length){em.hidden=false;em.textContent="Nothing matches these filters. Clear a filter or the search box."}
+  else em.hidden=true;
+  $("#count").textContent=items.length?`Showing ${rows.length} of ${items.length}`:"";
+  $("#clearBtn").hidden=!(st.cat.size||st.mode.size||st.status||st.q);
+}
+
+function renderTimeline(){
+  const dated=items.filter(r=>isDate(r.deadline)).sort((a,b)=>a.deadline<b.deadline?-1:1);
+  $("#rollingCount").textContent=items.length?`${items.length-dated.length} rolling`:"";
+  $("#timeline").innerHTML=dated.length?dated.map(r=>{const n=daysTo(r.deadline);return `<div class="tlrow${n<0?" past":n<=14?" soon":""}">
+     <span class="when">${shortDate(r.deadline)}</span><span class="dot"></span>
+     <button class="li" type="button" data-open="${esc(r.id)}"><span class="t">${esc(r.company)}<small>${esc(r.title)} · ${esc(statusOf(r))}</small></span></button>
+     <span class="left">${n<0?"Closed":n===0?"Today":plural(n,"day")+" left"}</span></div>`}).join("")
+    :`<div class="empty">No posted deadlines yet.</div>`;
+}
+
+function renderDrawer(){
+  const d=$("#drawer"), r=items.find(x=>x.id===openId);
+  if(!r){d.hidden=true;$("#scrim").hidden=true;return}
+  d.hidden=false;$("#scrim").hidden=false;
+  if(document.activeElement&&document.activeElement.id==="notes")return;
+  d.innerHTML=`<button class="x" type="button" id="closeDrawer" aria-label="Close">×</button>
+    <div><span class="pill cat-${esc(r.category)}">${esc(r.category)}</span> <span class="fit fit-${esc(r.fit)}" style="margin-left:6px">${esc(r.fit)} fit</span></div>
+    <div><h2>${esc(r.company)}</h2><div class="role" style="font-size:14px">${esc(r.title)}</div></div>
+    <div class="callout">${esc(r.why)}</div>
+    <dl class="dl">
+      <dt>Location</dt><dd>${esc(r.location)}</dd>
+      <dt>Setup</dt><dd>${esc(MODES[r.mode]||r.mode)}</dd>
+      <dt>Relocation</dt><dd>${esc(r.relocation)}</dd>
+      <dt>Pay</dt><dd class="num">${esc(r.pay||"Not listed")}</dd>
+      <dt>Deadline</dt><dd class="num">${fmtDeadline(r.deadline)}</dd>
+      <dt>Added</dt><dd class="num">${r.added?shortDate(r.added):""}</dd>
+    </dl>
+    <div><label for="dStatus">My status</label>${statusSelect(r,"dStatus")}</div>
+    <div><label for="notes">My notes</label><textarea id="notes" placeholder="Recruiter name, referral, interview dates…" ${canWrite?"":"disabled"}>${esc(r.notes||"")}</textarea></div>
+    <a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener">Open posting ↗</a>`;
+  $("#closeDrawer").onclick=closeDrawer;
+  $("#notes").addEventListener("change",e=>save(r.id,{notes:e.target.value},"Notes saved"));
+}
+function openDrawer(id){openId=id;renderDrawer();$("#closeDrawer")?.focus()}
+function closeDrawer(){openId=null;renderDrawer()}
+$("#scrim").onclick=closeDrawer;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&openId)closeDrawer()});
+
+const KEY="internship-board-progress-v1";
+function loadProgress(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}}
+let progress=loadProgress();
+function merge(){items=base.map(r=>({...r,...(progress[r.id]||{})}))}
+function save(id,patch,msg){
+  progress[id]={...(progress[id]||{}),...patch};
+  try{localStorage.setItem(KEY,JSON.stringify(progress));toast(msg)}catch(e){toast("Your browser blocked saving. Use Back up progress.")}
+  merge();renderAll();
+}
+function renderAll(){renderDashboard();renderTable();renderTimeline();renderDrawer()}
+
+document.addEventListener("change",e=>{
+  const s=e.target.closest("select[data-id]");
+  if(s){const v=s.value;save(s.dataset.id,{status:v,statusChanged:new Date().toISOString().slice(0,10)},"Saved: "+v)}
+});
+document.addEventListener("click",e=>{
+  if(e.target.closest("select,a,textarea,.chip"))return;
+  const b=e.target.closest("button.bar[data-cat],button.bar[data-mode]");
+  if(b){const set=b.dataset.cat?st.cat:st.mode,v=b.dataset.cat||b.dataset.mode;set.has(v)?set.delete(v):set.add(v);renderAll();$("#roles").scrollIntoView();return}
+  const o=e.target.closest("[data-open]"); if(o)openDrawer(o.dataset.open);
+});
+(function setupFilters(){
+  const cg=$("#catGroup"),mg=$("#modeGroup");
+  CATS.forEach(([c])=>cg.insertAdjacentHTML("beforeend",`<button type="button" class="chip" aria-pressed="false" data-cat="${c}">${c}</button>`));
+  Object.entries(MODES).forEach(([k,v])=>mg.insertAdjacentHTML("beforeend",`<button type="button" class="chip" aria-pressed="false" data-mode="${k}">${v}</button>`));
+  document.querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{const set=b.dataset.cat?st.cat:st.mode,v=b.dataset.cat||b.dataset.mode;set.has(v)?set.delete(v):set.add(v);renderAll()}));
+  const sf=$("#statusFilter");
+  sf.innerHTML=`<option value="">All statuses</option><option value="__active">Hide skipped &amp; rejected</option>`+STATUSES.map(s=>`<option>${s}</option>`).join("");
+  sf.addEventListener("change",()=>{st.status=sf.value;renderAll()});
+  $("#q").addEventListener("input",e=>{st.q=e.target.value.toLowerCase();renderTable()});
+  $("#clearBtn").addEventListener("click",()=>{st.cat.clear();st.mode.clear();st.status="";st.q="";sf.value="";$("#q").value="";renderAll()});
+  document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",()=>{const k=th.dataset.k;st.dir=st.sort===k?-st.dir:1;st.sort=k;renderTable()}));
+})();
+
+$("#exportBtn").addEventListener("click",async()=>{
+  if(!window.XLSX){toast("Excel export is still loading. Try again.");return}
+  const data=visible().map(r=>({Company:r.company,Role:r.title,Area:r.category,Setup:MODES[r.mode]||r.mode,Location:r.location,Relocation:r.relocation,Pay:r.pay,Deadline:r.deadline||"Rolling","Resume fit":r.fit,"Why it fits":r.why,Status:statusOf(r),Notes:r.notes||"",Link:r.url,Added:r.added}));
+  const ws=XLSX.utils.json_to_sheet(data);
+  ws["!cols"]=[18,46,11,13,30,30,16,11,10,50,14,30,50,11].map(w=>({wch:w}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Internships");
+  const buf=XLSX.write(wb,{type:"array",bookType:"xlsx"});
+  dlBlob(new Blob([buf]),`Summer-2027-Internships-${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+
+function dlBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+$("#backupBtn").addEventListener("click",()=>{dlBlob(new Blob([JSON.stringify(progress,null,2)],{type:"application/json"}),"internship-progress-backup.json");toast("Backup downloaded")});
+$("#restoreInput").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{progress=JSON.parse(await f.text());localStorage.setItem(KEY,JSON.stringify(progress));merge();renderAll();toast("Progress restored")}catch(err){toast("That file isn't a board backup")}e.target.value=""});
+let base=[];
+renderAll();
+fetch("internships.json?v="+Date.now()).then(r=>r.json()).then(d=>{base=d;merge();loaded=true;renderAll()}).catch(()=>{loaded=true;renderAll();toast("Couldn't load the role list. Refresh the page.")});
+</script>
+
+</body>
+</html>
