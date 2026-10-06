@@ -45,6 +45,11 @@ nav.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:v
 .brand{font-family:var(--display);font-weight:700;font-size:17px;margin-right:auto;white-space:nowrap}
 .brand small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:8px}
 .links{display:flex;gap:4px}
+.track{display:inline-flex;background:var(--track);border-radius:999px;padding:3px;gap:2px}
+.track button{font:inherit;font-weight:600;font-size:13px;border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.track button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(10,12,22,.12)}
+.track button .n{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:6px}
+.start{font-size:12px;color:var(--muted);margin-top:3px}
 .links a{color:var(--muted);text-decoration:none;font-weight:600;padding:6px 10px;border-radius:6px}
 .links a:hover{background:var(--track);color:var(--ink)}
 
@@ -166,7 +171,8 @@ footer{color:var(--muted);font-size:12.5px;max-width:90ch;display:flex;flex-dire
 
 <nav class="top">
   <div class="navin">
-    <div class="brand">Summer 2027 Internship Board<small id="navMeta"></small></div>
+    <div class="brand">Mohammed's Job Board<small id="navMeta"></small></div>
+    <div class="track" role="group" aria-label="Job type"><button type="button" data-track="intern" aria-pressed="true">Internships<span class="n" id="nIntern"></span></button><button type="button" data-track="fulltime" aria-pressed="false">Full-time<span class="n" id="nFull"></span></button></div>
     <div class="links"><a href="#overview">Overview</a><a href="#roles">Roles</a><a href="#deadlines">Deadlines</a></div>
     <button class="btn" id="exportBtn" type="button">Download Excel</button>
   </div>
@@ -176,8 +182,8 @@ footer{color:var(--muted);font-size:12.5px;max-width:90ch;display:flex;flex-dire
   <section id="overview">
     <div class="sechead">
       <div>
-        <h1>Mohammed's internship dashboard</h1>
-        <p class="sub">Full-time Summer 2027 roles in operations, HR and marketing that fit your resume. In-person roles outside DFW all list relocation or housing help. New matches land here every morning.</p>
+        <h1 id="heroTitle">Summer 2027 internships</h1>
+        <p class="sub" id="heroSub"></p>
       </div>
       <span class="meta" id="updated"></span>
     </div>
@@ -247,7 +253,7 @@ footer{color:var(--muted);font-size:12.5px;max-width:90ch;display:flex;flex-dire
   </section>
 
   <footer>
-    <div>How roles get picked: full-time Summer 2027, open to undergrads graduating December 2027, in operations / supply chain, HR, or marketing. Remote roles, DFW roles, and roles elsewhere only when the posting lists relocation, housing or a moving stipend. Roles with a GPA cutoff above 3.0 or a required engineering, finance or MBA background are left out.</div>
+    <div>How roles get picked: internships are full-time Summer 2027 roles open to students graduating December 2027. Full-time jobs are entry-level roles starting summer 2027 or later that hire May 2027 graduates. Both cover operations / supply chain, HR and marketing; remote, DFW, or elsewhere only when the posting lists relocation or housing help. Every link goes to the company's own job posting. Roles with a GPA cutoff above 3.0 or a required engineering, finance or MBA background are left out.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0"><button class="btn" id="backupBtn" type="button" style="background:transparent;color:var(--accent)">Back up progress</button><label class="btn" style="background:transparent;color:var(--accent)">Restore backup<input type="file" id="restoreInput" accept="application/json" hidden></label><span>Your statuses and notes are saved in this browser. Back them up to move to another device.</span></div>
     <div>Relocation help is usually "for eligible candidates". Confirm the amount with the recruiter.</div>
   </footer>
@@ -367,7 +373,7 @@ function renderTable(){
   document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",b.dataset.cat?st.cat.has(b.dataset.cat):st.mode.has(b.dataset.mode)));
   const rows=visible();
   $("#rows").innerHTML=rows.map(r=>{const s=statusOf(r);return `<tr class="${s==="Skipped"||s==="Rejected"?"dim":""}" data-open="${esc(r.id)}">
-      <td class="c-main"><div class="co">${esc(r.company)}${isNew(r)?'<span class="new">NEW</span>':""}</div><div class="role">${esc(r.title)}</div></td>
+      <td class="c-main"><div class="co">${esc(r.company)}${isNew(r)?'<span class="new">NEW</span>':""}</div><div class="role">${esc(r.title)}</div>${r.start?`<div class="start">Starts ${esc(r.start)}</div>`:""}</td>
       <td><span class="pill cat-${esc(r.category)}">${esc(r.category)}</span></td>
       <td><span class="pill">${esc(MODES[r.mode]||r.mode)}</span><div class="small" style="margin-top:4px">${esc(r.location)}</div></td>
       <td class="num">${esc(r.pay||"Not listed")}</td>
@@ -407,6 +413,7 @@ function renderDrawer(){
       <dt>Relocation</dt><dd>${esc(r.relocation)}</dd>
       <dt>Pay</dt><dd class="num">${esc(r.pay||"Not listed")}</dd>
       <dt>Deadline</dt><dd class="num">${fmtDeadline(r.deadline)}</dd>
+      ${r.start?`<dt>Start</dt><dd>${esc(r.start)}</dd>`:""}${r.grad?`<dt>Who can apply</dt><dd>${esc(r.grad)}</dd>`:""}
       <dt>Added</dt><dd class="num">${r.added?shortDate(r.added):""}</dd>
     </dl>
     <div><label for="dStatus">My status</label>${statusSelect(r,"dStatus")}</div>
@@ -423,7 +430,20 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&openId)closeDrawer(
 const KEY="internship-board-progress-v1";
 function loadProgress(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}}
 let progress=loadProgress();
-function merge(){items=base.map(r=>({...r,...(progress[r.id]||{})}))}
+let track=(location.hash==="#fulltime")?"fulltime":"intern";
+const TRACK_COPY={intern:["Summer 2027 internships","Full-time Summer 2027 internships in operations, HR and marketing that fit your resume. In-person roles outside DFW all list relocation or housing help. New matches land here every morning."],
+ fulltime:["Full-time jobs after graduation","Entry-level and rotational programs starting summer 2027 or later that hire May 2027 graduates, in case you finish early. Same rules: operations, HR or marketing, and DFW, remote, or relocation paid."]};
+function merge(){
+  const all=base.map(r=>({...r,...(progress[r.id]||{})}));
+  items=all.filter(r=>(r.track||"intern")===track);
+  const ni=all.filter(r=>(r.track||"intern")==="intern").length, nf=all.length-ni;
+  const a=document.getElementById("nIntern"),b=document.getElementById("nFull"); if(a)a.textContent=ni||""; if(b)b.textContent=nf||"";
+  document.querySelectorAll(".track button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.track===track));
+  document.getElementById("heroTitle").textContent=TRACK_COPY[track][0];
+  document.getElementById("heroSub").textContent=TRACK_COPY[track][1];
+  document.title=track==="fulltime"?"Full-time Jobs · Mohammed's Job Board":"Summer 2027 Internship Board";
+}
+document.querySelectorAll(".track button").forEach(b=>b.addEventListener("click",()=>{track=b.dataset.track;try{history.replaceState(null,"",track==="fulltime"?"#fulltime":"#")}catch(e){}openId=null;st.cat.clear();st.mode.clear();st.status="";st.q="";merge();renderAll()}));
 function save(id,patch,msg){
   progress[id]={...(progress[id]||{}),...patch};
   try{localStorage.setItem(KEY,JSON.stringify(progress));toast(msg)}catch(e){toast("Your browser blocked saving. Use Back up progress.")}
@@ -461,7 +481,7 @@ $("#exportBtn").addEventListener("click",async()=>{
   ws["!cols"]=[18,46,11,13,30,30,16,11,10,50,14,30,50,11].map(w=>({wch:w}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Internships");
   const buf=XLSX.write(wb,{type:"array",bookType:"xlsx"});
-  dlBlob(new Blob([buf]),`Summer-2027-Internships-${new Date().toISOString().slice(0,10)}.xlsx`);
+  dlBlob(new Blob([buf]),`${track==='fulltime'?'Full-time-Jobs':'Summer-2027-Internships'}-${new Date().toISOString().slice(0,10)}.xlsx`);
 });
 
 function dlBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
@@ -469,7 +489,8 @@ $("#backupBtn").addEventListener("click",()=>{dlBlob(new Blob([JSON.stringify(pr
 $("#restoreInput").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{progress=JSON.parse(await f.text());localStorage.setItem(KEY,JSON.stringify(progress));merge();renderAll();toast("Progress restored")}catch(err){toast("That file isn't a board backup")}e.target.value=""});
 let base=[];
 renderAll();
-fetch("internships.json?v="+Date.now()).then(r=>r.json()).then(d=>{base=d;merge();loaded=true;renderAll()}).catch(()=>{loaded=true;renderAll();toast("Couldn't load the role list. Refresh the page.")});
+merge();
+Promise.all([fetch("internships.json?v="+Date.now()).then(r=>r.json()),fetch("fulltime.json?v="+Date.now()).then(r=>r.ok?r.json():[]).catch(()=>[])]).then(([a,b])=>{base=[...a.map(r=>({...r,track:"intern"})),...b.map(r=>({...r,track:"fulltime"}))];merge();loaded=true;renderAll()}).catch(()=>{loaded=true;renderAll();toast("Couldn't load the role list. Refresh the page.")});
 </script>
 
 </body>
