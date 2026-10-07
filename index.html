@@ -148,6 +148,16 @@ aside.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);backgro
 .callout{background:var(--accent-soft);border-radius:10px;padding:12px 14px;font-size:13.5px}
 
 .tip{position:fixed;z-index:40;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;padding:6px 9px;border-radius:6px;max-width:240px}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);white-space:nowrap;font-family:var(--mono)}
+.live .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 60%,transparent);animation:pulse 2s infinite}
+.live.off .dot{background:var(--faint);animation:none}
+.live b{font-family:var(--body);color:var(--ok);font-weight:700;letter-spacing:.04em}
+.live.off b{color:var(--faint)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 55%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@keyframes arrive{0%{background:color-mix(in srgb,var(--ok) 22%,transparent)}100%{background:transparent}}
+tr.arrived td{animation:arrive 6s ease-out}
+.toast a{color:inherit;font-weight:700}
+@media (prefers-reduced-motion:reduce){.live .dot{animation:none}tr.arrived td{animation:none}}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:50}
 footer{color:var(--muted);font-size:12.5px;max-width:90ch;display:flex;flex-direction:column;gap:6px}
 
@@ -174,6 +184,7 @@ footer{color:var(--muted);font-size:12.5px;max-width:90ch;display:flex;flex-dire
     <div class="brand">Mohammed's Job Board<small id="navMeta"></small></div>
     <div class="track" role="group" aria-label="Job type"><button type="button" data-track="intern" aria-pressed="true">Internships<span class="n" id="nIntern"></span></button><button type="button" data-track="fulltime" aria-pressed="false">Full-time<span class="n" id="nFull"></span></button></div>
     <div class="links"><a href="#overview">Overview</a><a href="#roles">Roles</a><a href="#deadlines">Deadlines</a></div>
+    <span class="live" id="live" title="This page checks for new roles every minute"><span class="dot"></span><b>LIVE</b><span id="liveAgo">connecting…</span></span>
     <button class="btn" id="exportBtn" type="button">Download Excel</button>
   </div>
 </nav>
@@ -276,7 +287,7 @@ const st={cat:new Set(),mode:new Set(),status:"",q:"",sort:"fit",dir:1};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const statusOf=r=>r.status||"Not applied";
-function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2200)}
+function toast(t,ms){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,ms||2200)}
 const today=()=>{const d=new Date();d.setHours(12,0,0,0);return d};
 const daysTo=d=>Math.round((new Date(d+"T12:00:00")-today())/864e5);
 const isDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||"");
@@ -372,7 +383,7 @@ function renderTable(){
   const th=document.querySelector(`th[data-k="${st.sort}"]`); if(th)th.setAttribute("aria-sort",st.dir>0?"ascending":"descending");
   document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",b.dataset.cat?st.cat.has(b.dataset.cat):st.mode.has(b.dataset.mode)));
   const rows=visible();
-  $("#rows").innerHTML=rows.map(r=>{const s=statusOf(r);return `<tr class="${s==="Skipped"||s==="Rejected"?"dim":""}" data-open="${esc(r.id)}">
+  $("#rows").innerHTML=rows.map(r=>{const s=statusOf(r);return `<tr class="${s==="Skipped"||s==="Rejected"?"dim":""}${arrived.has(r.id)?" arrived":""}" data-open="${esc(r.id)}">
       <td class="c-main"><div class="co">${esc(r.company)}${isNew(r)?'<span class="new">NEW</span>':""}</div><div class="role">${esc(r.title)}</div>${r.start?`<div class="start">Starts ${esc(r.start)}</div>`:""}</td>
       <td><span class="pill cat-${esc(r.category)}">${esc(r.category)}</span></td>
       <td><span class="pill">${esc(MODES[r.mode]||r.mode)}</span><div class="small" style="margin-top:4px">${esc(r.location)}</div></td>
@@ -490,7 +501,36 @@ $("#restoreInput").addEventListener("change",async e=>{const f=e.target.files[0]
 let base=[];
 renderAll();
 merge();
-Promise.all([fetch("internships.json?v="+Date.now()).then(r=>r.json()),fetch("fulltime.json?v="+Date.now()).then(r=>r.ok?r.json():[]).catch(()=>[])]).then(([a,b])=>{base=[...a.map(r=>({...r,track:"intern"})),...b.map(r=>({...r,track:"fulltime"}))];merge();loaded=true;renderAll()}).catch(()=>{loaded=true;renderAll();toast("Couldn't load the role list. Refresh the page.")});
+let arrived=new Set(), lastCheck=0, firstLoad=true, polling=null;
+async function loadData(){
+  const [a,b]=await Promise.all([
+    fetch("internships.json?v="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}),
+    fetch("fulltime.json?v="+Date.now(),{cache:"no-store"}).then(r=>r.ok?r.json():[]).catch(()=>[])]);
+  const next=[...a.map(r=>({...r,track:"intern"})),...b.map(r=>({...r,track:"fulltime"}))];
+  if(!firstLoad){
+    const old=new Set(base.map(r=>r.id)); const fresh=next.filter(r=>!old.has(r.id));
+    if(fresh.length){
+      fresh.forEach(r=>arrived.add(r.id));
+      const f=fresh[0], more=fresh.length>1?` and ${fresh.length-1} more`:"";
+      toast(`New ${f.track==="fulltime"?"full-time job":"internship"}: ${f.company}${more}`,6000);
+      try{document.title="("+fresh.length+") "+document.title.replace(/^\(\d+\) /,"")}catch(e){}
+      setTimeout(()=>{fresh.forEach(r=>arrived.delete(r.id))},8000);
+    }
+  }
+  base=next; firstLoad=false; loaded=true; lastCheck=Date.now(); setLive(true); tickAgo();
+  merge(); renderAll();
+}
+function setLive(ok){const el=$("#live");el.classList.toggle("off",!ok);if(!ok)$("#liveAgo").textContent="offline · retrying"}
+function tickAgo(){
+  if(!lastCheck)return;
+  const s=Math.round((Date.now()-lastCheck)/1000);
+  $("#liveAgo").textContent=s<10?"just checked":s<60?`checked ${s}s ago`:`checked ${Math.round(s/60)}m ago`;
+}
+async function check(){try{await loadData()}catch(e){if(firstLoad){loaded=true;renderAll();toast("Couldn't load the role list. Refresh the page.")}setLive(false)}}
+function startPolling(){if(polling)return;polling=setInterval(()=>{if(!document.hidden)check()},60000)}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){check();document.title=document.title.replace(/^\(\d+\) /,"")}});
+setInterval(()=>{tickAgo();if(!openId&&!document.hidden&&document.activeElement?.tagName!=="SELECT"&&document.activeElement?.tagName!=="INPUT")renderDashboard()},15000);
+check().then(startPolling);
 </script>
 
 </body>
