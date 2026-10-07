@@ -49,6 +49,14 @@ nav.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:v
 .track button{font:inherit;font-weight:600;font-size:13px;border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:999px;cursor:pointer;white-space:nowrap}
 .track button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(10,12,22,.12)}
 .track button .n{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:6px}
+.bigtoggle{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:5px}
+.bigtoggle button{font:inherit;border:0;background:transparent;color:var(--muted);padding:14px 12px;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.bigtoggle button b{font-family:var(--display);font-size:18px;font-weight:700;color:inherit}
+.bigtoggle button span{font-size:12.5px}
+.bigtoggle button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.bigtoggle button[aria-pressed="true"] span{color:color-mix(in srgb,var(--surface) 85%,transparent)}
+.bigtoggle button:not([aria-pressed="true"]):hover{background:var(--track);color:var(--ink)}
+.ver{font-family:var(--mono);font-size:11px;color:var(--faint)}
 .start{font-size:12px;color:var(--muted);margin-top:3px}
 .links a{color:var(--muted);text-decoration:none;font-weight:600;padding:6px 10px;border-radius:6px}
 .links a:hover{background:var(--track);color:var(--ink)}
@@ -190,6 +198,10 @@ footer{color:var(--muted);font-size:12.5px;max-width:90ch;display:flex;flex-dire
 </nav>
 
 <div class="wrap">
+  <div class="bigtoggle" role="group" aria-label="Show internships or full-time jobs">
+    <button type="button" data-track="intern" aria-pressed="true"><b>Internships</b><span id="bigIntern">Summer 2027</span></button>
+    <button type="button" data-track="fulltime" aria-pressed="false"><b>Full-time Jobs</b><span id="bigFull">Start 2027 or later</span></button>
+  </div>
   <section id="overview">
     <div class="sechead">
       <div>
@@ -266,6 +278,7 @@ footer{color:var(--muted);font-size:12.5px;max-width:90ch;display:flex;flex-dire
   <footer>
     <div>How roles get picked: internships are full-time Summer 2027 roles open to students graduating December 2027. Full-time jobs are entry-level roles starting summer 2027 or later that hire May 2027 graduates. Both cover operations / supply chain, HR and marketing; remote, DFW, or elsewhere only when the posting lists relocation or housing help. Every link goes to the company's own job posting. Roles with a GPA cutoff above 3.0 or a required engineering, finance or MBA background are left out.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0"><button class="btn" id="backupBtn" type="button" style="background:transparent;color:var(--accent)">Back up progress</button><label class="btn" style="background:transparent;color:var(--accent)">Restore backup<input type="file" id="restoreInput" accept="application/json" hidden></label><span>Your statuses and notes are saved in this browser. Back them up to move to another device.</span></div>
+    <div class="ver">Version 4 · Oct 6, 2026 · internships + full-time jobs</div>
     <div>Relocation help is usually "for eligible candidates". Confirm the amount with the recruiter.</div>
   </footer>
 </div>
@@ -449,12 +462,13 @@ function merge(){
   items=all.filter(r=>(r.track||"intern")===track);
   const ni=all.filter(r=>(r.track||"intern")==="intern").length, nf=all.length-ni;
   const a=document.getElementById("nIntern"),b=document.getElementById("nFull"); if(a)a.textContent=ni||""; if(b)b.textContent=nf||"";
-  document.querySelectorAll(".track button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.track===track));
+  const bi=document.getElementById("bigIntern"),bf=document.getElementById("bigFull"); if(bi)bi.textContent=`Summer 2027 · ${ni} roles`; if(bf)bf.textContent=`Start 2027+ · ${nf} roles`;
+  document.querySelectorAll("[data-track]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.track===track));
   document.getElementById("heroTitle").textContent=TRACK_COPY[track][0];
   document.getElementById("heroSub").textContent=TRACK_COPY[track][1];
   document.title=track==="fulltime"?"Full-time Jobs · Mohammed's Job Board":"Summer 2027 Internship Board";
 }
-document.querySelectorAll(".track button").forEach(b=>b.addEventListener("click",()=>{track=b.dataset.track;try{history.replaceState(null,"",track==="fulltime"?"#fulltime":"#")}catch(e){}openId=null;st.cat.clear();st.mode.clear();st.status="";st.q="";merge();renderAll()}));
+document.querySelectorAll("[data-track]").forEach(b=>b.addEventListener("click",()=>{track=b.dataset.track;try{history.replaceState(null,"",track==="fulltime"?"#fulltime":"#")}catch(e){}openId=null;st.cat.clear();st.mode.clear();st.status="";st.q="";merge();renderAll()}));
 function save(id,patch,msg){
   progress[id]={...(progress[id]||{}),...patch};
   try{localStorage.setItem(KEY,JSON.stringify(progress));toast(msg)}catch(e){toast("Your browser blocked saving. Use Back up progress.")}
